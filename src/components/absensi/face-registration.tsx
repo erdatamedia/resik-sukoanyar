@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
-import { CameraIcon, Loader2Icon, XIcon, ScanFaceIcon } from "lucide-react"
+import { CameraIcon, ImageUpIcon, Loader2Icon, XIcon, ScanFaceIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -10,17 +10,28 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Checkbox } from "@/components/ui/checkbox"
 import { computeFaceDescriptor, fileToDetectionImage } from "@/lib/face/face-api-client"
 import { registerFaceDescriptor } from "@/lib/actions/face"
+import { CameraCapture } from "@/components/absensi/camera-capture"
 
 export function FaceRegistration({ onRegistered }: { onRegistered: () => void }) {
   const [consent, setConsent] = useState(false)
   const [preview, setPreview] = useState<{ file: File; url: string } | null>(null)
+  const [cameraOpen, setCameraOpen] = useState(false)
   const [processing, setProcessing] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  function setFile(file: File) {
+    setPreview({ file, url: URL.createObjectURL(file) })
+  }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    setPreview({ file, url: URL.createObjectURL(file) })
+    setFile(file)
+  }
+
+  function handleCapture(file: File) {
+    setFile(file)
+    setCameraOpen(false)
   }
 
   function cancelPreview() {
@@ -110,19 +121,34 @@ export function FaceRegistration({ onRegistered }: { onRegistered: () => void })
                 Daftarkan Wajah
               </Button>
             </motion.div>
+          ) : cameraOpen ? (
+            <CameraCapture key="camera" onCapture={handleCapture} onCancel={() => setCameraOpen(false)} />
           ) : (
-            <motion.div key="capture-btn" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <motion.div
+              key="capture-btn"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex flex-col items-center gap-2"
+            >
               <input
                 ref={inputRef}
                 type="file"
                 accept="image/*"
-                capture="user"
                 onChange={handleFileChange}
                 className="hidden"
               />
-              <Button onClick={() => inputRef.current?.click()} className="h-12 w-56">
+              <Button onClick={() => setCameraOpen(true)} className="h-12 w-56">
                 <CameraIcon />
                 Ambil Foto Wajah
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => inputRef.current?.click()}
+              >
+                <ImageUpIcon />
+                Upload dari galeri
               </Button>
             </motion.div>
           )}

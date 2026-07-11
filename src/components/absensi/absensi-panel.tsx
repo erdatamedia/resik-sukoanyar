@@ -2,13 +2,14 @@
 
 import { useRef, useState, useTransition } from "react"
 import { motion, AnimatePresence } from "motion/react"
-import { CameraIcon, LogInIcon, LogOutIcon, Loader2Icon, XIcon } from "lucide-react"
+import { CameraIcon, ImageUpIcon, LogInIcon, LogOutIcon, Loader2Icon, XIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { checkIn, checkOut } from "@/lib/actions/absensi"
 import { computeFaceDescriptor, fileToDetectionImage } from "@/lib/face/face-api-client"
+import { CameraCapture } from "@/components/absensi/camera-capture"
 
 type TodayAbsensi = {
   checkIn: Date
@@ -25,14 +26,24 @@ export function AbsensiPanel({
   const [pending, startTransition] = useTransition()
   const [verifying, setVerifying] = useState(false)
   const [preview, setPreview] = useState<{ file: File; url: string } | null>(null)
+  const [cameraOpen, setCameraOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const status = !today ? "belum" : !today.checkOut ? "checked-in" : "selesai"
 
+  function setFile(file: File) {
+    setPreview({ file, url: URL.createObjectURL(file) })
+  }
+
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    setPreview({ file, url: URL.createObjectURL(file) })
+    setFile(file)
+  }
+
+  function handleCapture(file: File) {
+    setFile(file)
+    setCameraOpen(false)
   }
 
   function cancelPreview() {
@@ -139,19 +150,34 @@ export function AbsensiPanel({
                 {verifying ? "Memverifikasi wajah..." : "Konfirmasi Check-in"}
               </Button>
             </motion.div>
+          ) : cameraOpen ? (
+            <CameraCapture key="camera" onCapture={handleCapture} onCancel={() => setCameraOpen(false)} />
           ) : status === "belum" ? (
-            <motion.div key="checkin-btn" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <motion.div
+              key="checkin-btn"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex flex-col items-center gap-2"
+            >
               <input
                 ref={inputRef}
                 type="file"
                 accept="image/*"
-                capture="user"
                 onChange={handleFileChange}
                 className="hidden"
               />
-              <Button onClick={() => inputRef.current?.click()} className="h-12 w-56">
+              <Button onClick={() => setCameraOpen(true)} className="h-12 w-56">
                 <CameraIcon />
                 Check-in (Selfie)
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => inputRef.current?.click()}
+              >
+                <ImageUpIcon />
+                Upload dari galeri
               </Button>
             </motion.div>
           ) : status === "checked-in" ? (
