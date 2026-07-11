@@ -3,6 +3,27 @@ import { prisma } from "@/lib/prisma"
 const SERVICE_URL = process.env.WHATSAPP_SERVICE_URL ?? "http://localhost:4001"
 const SERVICE_TOKEN = process.env.WHATSAPP_SERVICE_TOKEN
 
+export async function getWhatsAppStatus(): Promise<{
+  reachable: boolean
+  ready: boolean
+  qr: string | null
+}> {
+  if (!SERVICE_TOKEN) return { reachable: false, ready: false, qr: null }
+
+  try {
+    const res = await fetch(`${SERVICE_URL}/status`, {
+      headers: { Authorization: `Bearer ${SERVICE_TOKEN}` },
+      signal: AbortSignal.timeout(5000),
+      cache: "no-store",
+    })
+    if (!res.ok) return { reachable: false, ready: false, qr: null }
+    const data = (await res.json()) as { ready: boolean; qr: string | null }
+    return { reachable: true, ready: data.ready, qr: data.qr }
+  } catch {
+    return { reachable: false, ready: false, qr: null }
+  }
+}
+
 export function normalizePhoneNumber(raw: string): string {
   const digits = raw.replace(/[^0-9]/g, "")
   if (digits.startsWith("0")) return `62${digits.slice(1)}`

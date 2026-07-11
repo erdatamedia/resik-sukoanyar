@@ -14,6 +14,7 @@ if (!SERVICE_TOKEN) {
 }
 
 let ready = false
+let latestQr: string | null = null
 
 const client = new Client({
   authStrategy: new LocalAuth({ dataPath: "./.wwebjs_auth" }),
@@ -24,12 +25,14 @@ const client = new Client({
 })
 
 client.on("qr", (qr) => {
+  latestQr = qr
   console.log("\nScan QR code berikut dengan WhatsApp di HP (nomor khusus, bukan pribadi):\n")
   qrcode.generate(qr, { small: true })
 })
 
 client.on("ready", () => {
   ready = true
+  latestQr = null
   console.log("WhatsApp client siap menerima permintaan kirim pesan.")
 })
 
@@ -45,6 +48,14 @@ client.on("auth_failure", (message) => {
 
 client.initialize()
 
+// whatsapp-web.js/Puppeteer kadang melempar exception saat re-inject script
+// ke halaman yang belum bersih ditutup (mis. setelah LOGOUT). Tanpa handler
+// ini, Node akan exit dan PM2 langsung restart proses sebelum Chromium lama
+// selesai dilepas, sehingga QR baru gagal muncul berulang-ulang.
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught exception pada WhatsApp client (diabaikan agar tidak crash-loop):", err)
+})
+
 const app = express()
 app.use(express.json())
 
@@ -59,6 +70,10 @@ app.use((req, res, next) => {
 
 app.get("/health", (_req, res) => {
   res.json({ ready })
+})
+
+app.get("/status", (_req, res) => {
+  res.json({ ready, qr: latestQr })
 })
 
 app.post("/send", async (req, res) => {
