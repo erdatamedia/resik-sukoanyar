@@ -8,6 +8,7 @@ import {
   History,
   CameraIcon,
   MessageCircleIcon,
+  UserCogIcon,
 } from "lucide-react"
 
 export type NavItem = {
@@ -24,6 +25,7 @@ export const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { label: "Iuran", href: "/admin/iuran", icon: Wallet },
     { label: "Pengeluaran", href: "/admin/pengeluaran", icon: Receipt },
     { label: "Notifikasi", href: "/admin/notifikasi", icon: MessageCircleIcon },
+    { label: "Pengguna", href: "/admin/pengguna", icon: UserCogIcon },
   ],
   PETUGAS_PENARIK: [
     { label: "Beranda", href: "/petugas-penarik", icon: LayoutDashboard },
