@@ -8,7 +8,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { checkIn, checkOut } from "@/lib/actions/absensi"
-import { computeFaceDescriptor } from "@/lib/face/face-api-client"
+import { computeFaceDescriptor, fileToDetectionImage } from "@/lib/face/face-api-client"
 
 type TodayAbsensi = {
   checkIn: Date
@@ -26,7 +26,6 @@ export function AbsensiPanel({
   const [verifying, setVerifying] = useState(false)
   const [preview, setPreview] = useState<{ file: File; url: string } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const imgRef = useRef<HTMLImageElement>(null)
 
   const status = !today ? "belum" : !today.checkOut ? "checked-in" : "selesai"
 
@@ -48,12 +47,20 @@ export function AbsensiPanel({
     const formData = new FormData()
     formData.set("selfie", preview.file)
 
-    if (referenceDescriptor && imgRef.current) {
+    if (referenceDescriptor) {
       setVerifying(true)
-      const descriptor = await computeFaceDescriptor(imgRef.current)
-      setVerifying(false)
-      if (descriptor) {
-        formData.set("descriptor", JSON.stringify(Array.from(descriptor)))
+      try {
+        const detectionImage = await fileToDetectionImage(preview.file)
+        const descriptor = await computeFaceDescriptor(detectionImage)
+        if (descriptor) {
+          formData.set("descriptor", JSON.stringify(Array.from(descriptor)))
+        }
+      } catch (err) {
+        // Verifikasi wajah gagal (mis. model belum termuat) — lanjutkan
+        // check-in tanpa deskriptor, biar admin yang meninjau manual nanti.
+        console.error("Verifikasi wajah gagal:", err)
+      } finally {
+        setVerifying(false)
       }
     }
 
@@ -111,7 +118,6 @@ export function AbsensiPanel({
               <div className="relative">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  ref={imgRef}
                   src={preview.url}
                   alt="Pratinjau selfie"
                   className="h-48 w-48 rounded-xl object-cover ring-1 ring-foreground/10"

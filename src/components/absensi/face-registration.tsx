@@ -8,7 +8,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { computeFaceDescriptor } from "@/lib/face/face-api-client"
+import { computeFaceDescriptor, fileToDetectionImage } from "@/lib/face/face-api-client"
 import { registerFaceDescriptor } from "@/lib/actions/face"
 
 export function FaceRegistration({ onRegistered }: { onRegistered: () => void }) {
@@ -16,7 +16,6 @@ export function FaceRegistration({ onRegistered }: { onRegistered: () => void })
   const [preview, setPreview] = useState<{ file: File; url: string } | null>(null)
   const [processing, setProcessing] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-  const imgRef = useRef<HTMLImageElement>(null)
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -31,10 +30,11 @@ export function FaceRegistration({ onRegistered }: { onRegistered: () => void })
   }
 
   async function confirmRegistration() {
-    if (!preview || !imgRef.current) return
+    if (!preview) return
     setProcessing(true)
     try {
-      const descriptor = await computeFaceDescriptor(imgRef.current)
+      const detectionImage = await fileToDetectionImage(preview.file)
+      const descriptor = await computeFaceDescriptor(detectionImage)
       if (!descriptor) {
         toast.error("Wajah tidak terdeteksi. Coba lagi dengan pencahayaan lebih baik.")
         return
@@ -81,7 +81,6 @@ export function FaceRegistration({ onRegistered }: { onRegistered: () => void })
               <div className="relative">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  ref={imgRef}
                   src={preview.url}
                   alt="Pratinjau wajah referensi"
                   className="h-48 w-48 rounded-xl object-cover ring-1 ring-foreground/10"
