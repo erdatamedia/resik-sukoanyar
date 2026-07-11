@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react"
 import { motion } from "motion/react"
-import { PlusIcon, SearchIcon, MoreVerticalIcon, SendIcon } from "lucide-react"
+import { PlusIcon, SearchIcon, MoreVerticalIcon, SendIcon, UploadIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -43,6 +43,7 @@ import { formatRupiah } from "@/lib/format"
 import { setStatusAktifPelanggan, deletePelanggan } from "@/lib/actions/pelanggan"
 import { sendReminderSatuPelanggan } from "@/lib/actions/pembayaran"
 import { PelangganFormDialog, type PelangganRow } from "./pelanggan-form-dialog"
+import { ImportPelangganDialog } from "./import-pelanggan-dialog"
 
 export function PelangganClient({
   pelanggan,
@@ -59,6 +60,7 @@ export function PelangganClient({
   const [deleteTarget, setDeleteTarget] = useState<PelangganRow | null>(null)
   const [sendingId, setSendingId] = useState<string | null>(null)
   const [, startTransition] = useTransition()
+  const [importOpen, setImportOpen] = useState(false)
 
   const filtered = useMemo(() => {
     return pelanggan.filter((p) => {
@@ -124,10 +126,16 @@ export function PelangganClient({
           <h1 className="text-xl font-semibold">Data Pelanggan</h1>
           <p className="text-sm text-muted-foreground">{pelanggan.length} pelanggan terdaftar</p>
         </div>
-        <Button onClick={openCreate}>
-          <PlusIcon />
-          Tambah Pelanggan
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setImportOpen(true)}>
+            <UploadIcon />
+            Impor Data
+          </Button>
+          <Button onClick={openCreate}>
+            <PlusIcon />
+            Tambah Pelanggan
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">
@@ -265,6 +273,8 @@ export function PelangganClient({
         desaList={desaList}
         editing={editing}
       />
+
+      <ImportPelangganDialog open={importOpen} onOpenChange={setImportOpen} desaList={desaList} />
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
