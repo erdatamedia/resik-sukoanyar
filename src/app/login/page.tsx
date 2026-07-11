@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { signIn } from "next-auth/react"
 import { useForm } from "react-hook-form"
@@ -30,6 +30,14 @@ const loginSchema = z.object({
 type LoginValues = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  )
+}
+
+function LoginForm() {
   const searchParams = useSearchParams()
   const [submitting, setSubmitting] = useState(false)
 
