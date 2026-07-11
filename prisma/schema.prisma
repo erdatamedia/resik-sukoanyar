@@ -1,0 +1,167 @@
+// Skema database Sembrani (MVP) — lihat brief-sembrani.md untuk konteks
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  PETUGAS_PENARIK
+  PETUGAS_SAMPAH
+}
+
+enum StatusAktif {
+  AKTIF
+  NONAKTIF
+}
+
+enum VerifikasiStatus {
+  PENDING
+  VERIFIED
+  FAILED
+  OVERRIDE_MANUAL
+}
+
+enum StatusPembayaran {
+  LUNAS
+  BELUM
+}
+
+enum JenisNotifikasi {
+  REMINDER_TAGIHAN
+  KONFIRMASI_PEMBAYARAN
+}
+
+enum StatusTerkirim {
+  PENDING
+  TERKIRIM
+  GAGAL
+}
+
+model Desa {
+  id        String      @id @default(cuid())
+  nama      String      @unique
+  pelanggan Pelanggan[]
+  users     User[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@map("desa")
+}
+
+model User {
+  id                String    @id @default(cuid())
+  nama              String
+  email             String    @unique
+  passwordHash      String
+  role              Role
+  desaId            String?
+  desa              Desa?     @relation(fields: [desaId], references: [id])
+  faceDescriptor    Json?
+  fotoReferensiUrl  String?
+  faceConsentAt     DateTime?
+  isActive          Boolean   @default(true)
+
+  absensi             Absensi[]
+  pembayaranDiterima  Pembayaran[]
+  operasionalSampah   OperasionalSampah[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Pelanggan {
+  id          String      @id @default(cuid())
+  nama        String
+  alamat      String
+  noHp        String      @default("")
+  desaId      String
+  desa        Desa        @relation(fields: [desaId], references: [id])
+  statusAktif StatusAktif @default(AKTIF)
+  iuran       Decimal     @db.Decimal(12, 2)
+
+  pembayaran    Pembayaran[]
+  notifikasiLog NotifikasiLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([desaId])
+  @@map("pelanggan")
+}
+
+model Absensi {
+  id               String           @id @default(cuid())
+  userId           String
+  user             User             @relation(fields: [userId], references: [id])
+  checkIn          DateTime
+  checkOut         DateTime?
+  selfieUrl        String?
+  verifikasiStatus VerifikasiStatus @default(PENDING)
+  overrideByAdmin  Boolean          @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("absensi")
+}
+
+model Pembayaran {
+  id          String            @id @default(cuid())
+  pelangganId String
+  pelanggan   Pelanggan         @relation(fields: [pelangganId], references: [id])
+  petugasId   String
+  petugas     User              @relation(fields: [petugasId], references: [id])
+  nominal     Decimal           @db.Decimal(12, 2)
+  tanggal     DateTime
+  status      StatusPembayaran  @default(BELUM)
+
+  createdAt DateTime @default(now())
+
+  @@index([pelangganId])
+  @@index([petugasId])
+  @@map("pembayaran")
+}
+
+model Pengeluaran {
+  id        String   @id @default(cuid())
+  kategori  String
+  nominal   Decimal  @db.Decimal(12, 2)
+  tanggal   DateTime
+  createdAt DateTime @default(now())
+
+  @@map("pengeluaran")
+}
+
+model OperasionalSampah {
+  id                  String   @id @default(cuid())
+  tanggal             DateTime
+  petugasId           String
+  petugas             User     @relation(fields: [petugasId], references: [id])
+  jumlahRumahDilayani Int
+
+  createdAt DateTime @default(now())
+
+  @@index([petugasId])
+  @@map("operasional_sampah")
+}
+
+model NotifikasiLog {
+  id             String          @id @default(cuid())
+  pelangganId    String
+  pelanggan      Pelanggan       @relation(fields: [pelangganId], references: [id])
+  jenis          JenisNotifikasi
+  pesan          String
+  statusTerkirim StatusTerkirim  @default(PENDING)
+  timestamp      DateTime        @default(now())
+
+  @@index([pelangganId])
+  @@map("notifikasi_log")
+}
