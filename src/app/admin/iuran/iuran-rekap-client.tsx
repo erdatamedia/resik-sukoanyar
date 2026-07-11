@@ -152,7 +152,7 @@ export function IuranRekapClient({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Terkumpul bulan ini" value={formatRupiah(totalTerkumpul)} icon={WalletIcon} tone="positive" index={0} />
         <StatCard label="Pelanggan lunas" value={String(jumlahLunas)} icon={UsersIcon} index={1} />
         <StatCard label="Belum bayar" value={String(belumBayar)} icon={AlertCircleIcon} tone="negative" index={2} />

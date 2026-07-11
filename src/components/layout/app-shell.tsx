@@ -5,6 +5,7 @@ import { NAV_BY_ROLE } from "@/lib/nav"
 import { SidebarNavLink, BottomNavLink } from "@/components/layout/nav-link"
 import { PageTransition } from "@/components/layout/page-transition"
 import { LogoutButton } from "@/components/logout-button"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 function initials(name: string) {
@@ -37,10 +38,11 @@ export function AppShell({
           <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Trash2Icon className="size-4" />
           </div>
-          <div className="leading-tight">
+          <div className="min-w-0 flex-1 leading-tight">
             <p className="text-sm font-semibold">RESIK</p>
-            <p className="text-xs text-muted-foreground">{roleLabel}</p>
+            <p className="truncate text-xs text-muted-foreground">{roleLabel}</p>
           </div>
+          <ThemeToggle />
         </div>
         <nav className="flex flex-1 flex-col gap-1 px-3">
           {navItems.map((item) => (
@@ -67,7 +69,10 @@ export function AppShell({
             </div>
             <p className="text-sm font-semibold">RESIK</p>
           </div>
-          <LogoutButton />
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <LogoutButton />
+          </div>
         </header>
 
         <main className="flex-1 overflow-y-auto px-4 py-5 pb-20 md:px-8 md:py-8 md:pb-8">

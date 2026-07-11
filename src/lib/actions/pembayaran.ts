@@ -110,3 +110,33 @@ export async function triggerReminderTagihan() {
 
   return { total: belumBayar.length, akanDikirim: totalDenganNomor, skipped }
 }
+
+export async function sendReminderSatuPelanggan(pelangganId: string) {
+  await requireAdmin()
+
+  const pelanggan = await prisma.pelanggan.findUnique({ where: { id: pelangganId } })
+  if (!pelanggan) {
+    throw new Error("Pelanggan tidak ditemukan")
+  }
+  if (!pelanggan.noHp) {
+    throw new Error("Pelanggan belum punya nomor HP")
+  }
+
+  const bulanIni = new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" })
+  const message = `Halo ${pelanggan.nama}, ini pengingat iuran sampah bulan ${bulanIni} sebesar ${formatRupiah(
+    Number(pelanggan.iuran)
+  )} masih belum dibayar. Mohon segera diselesaikan sebelum akhir bulan. Terima kasih - RESIK`
+
+  const result = await sendWhatsAppMessage({
+    pelangganId: pelanggan.id,
+    to: pelanggan.noHp,
+    message,
+    jenis: "REMINDER_TAGIHAN",
+  })
+
+  revalidatePath("/admin/notifikasi")
+
+  if (!result.success) {
+    throw new Error(result.error ?? "Gagal mengirim reminder")
+  }
+}

@@ -1,8 +1,8 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useTransition } from "react"
 import { motion } from "motion/react"
-import { PlusIcon, SearchIcon, MoreVerticalIcon } from "lucide-react"
+import { PlusIcon, SearchIcon, MoreVerticalIcon, SendIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -41,13 +41,14 @@ import {
 } from "@/components/ui/alert-dialog"
 import { formatRupiah } from "@/lib/format"
 import { setStatusAktifPelanggan, deletePelanggan } from "@/lib/actions/pelanggan"
+import { sendReminderSatuPelanggan } from "@/lib/actions/pembayaran"
 import { PelangganFormDialog, type PelangganRow } from "./pelanggan-form-dialog"
 
 export function PelangganClient({
   pelanggan,
   desaList,
 }: {
-  pelanggan: (PelangganRow & { desaNama: string })[]
+  pelanggan: (PelangganRow & { desaNama: string; sudahLunasBulanIni: boolean })[]
   desaList: { id: string; nama: string }[]
 }) {
   const [search, setSearch] = useState("")
@@ -56,6 +57,8 @@ export function PelangganClient({
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<PelangganRow | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<PelangganRow | null>(null)
+  const [sendingId, setSendingId] = useState<string | null>(null)
+  const [, startTransition] = useTransition()
 
   const filtered = useMemo(() => {
     return pelanggan.filter((p) => {
@@ -86,6 +89,20 @@ export function PelangganClient({
     } catch {
       toast.error("Gagal mengubah status")
     }
+  }
+
+  function handleSendReminder(row: PelangganRow) {
+    setSendingId(row.id)
+    startTransition(async () => {
+      try {
+        await sendReminderSatuPelanggan(row.id)
+        toast.success(`Reminder tagihan dikirim ke ${row.nama}`)
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Gagal mengirim reminder")
+      } finally {
+        setSendingId(null)
+      }
+    })
   }
 
   async function confirmDelete() {
@@ -171,13 +188,14 @@ export function PelangganClient({
               <TableHead>Desa</TableHead>
               <TableHead>Iuran</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Iuran Bulan Ini</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
                   Tidak ada pelanggan yang cocok.
                 </TableCell>
               </TableRow>
@@ -197,6 +215,15 @@ export function PelangganClient({
                   </Badge>
                 </TableCell>
                 <TableCell>
+                  {row.statusAktif !== "AKTIF" ? (
+                    <span className="text-muted-foreground">-</span>
+                  ) : (
+                    <Badge variant={row.sudahLunasBulanIni ? "secondary" : "destructive"}>
+                      {row.sudahLunasBulanIni ? "Lunas" : "Belum bayar"}
+                    </Badge>
+                  )}
+                </TableCell>
+                <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger
                       render={<Button variant="ghost" size="icon" className="size-8" />}
@@ -205,6 +232,15 @@ export function PelangganClient({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => openEdit(row)}>Edit</DropdownMenuItem>
+                      {row.statusAktif === "AKTIF" && !row.sudahLunasBulanIni && (
+                        <DropdownMenuItem
+                          disabled={!row.noHp || sendingId === row.id}
+                          onClick={() => handleSendReminder(row)}
+                        >
+                          <SendIcon />
+                          {sendingId === row.id ? "Mengirim..." : "Kirim Reminder Tagihan"}
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem onClick={() => toggleStatus(row)}>
                         {row.statusAktif === "AKTIF" ? "Nonaktifkan" : "Aktifkan"}
                       </DropdownMenuItem>

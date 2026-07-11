@@ -133,7 +133,7 @@ export function AbsensiRekapClient({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Total kehadiran" value={String(rows.length)} icon={ClipboardCheckIcon} index={0} />
         <StatCard label="Sudah check-out" value={String(selesai)} icon={ClipboardCheckIcon} tone="positive" index={1} />
         <StatCard label="Petugas aktif hari ini" value={String(petugasHariIni)} icon={UsersIcon} index={2} />

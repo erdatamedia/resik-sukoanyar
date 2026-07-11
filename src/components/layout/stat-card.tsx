@@ -24,8 +24,8 @@ export function StatCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.06, ease: "easeOut" }}
     >
-      <Card>
-        <CardContent className="flex items-center gap-4">
+      <Card className="h-full">
+        <CardContent className="flex h-full items-center gap-3">
           <div
             className={cn(
               "flex size-10 shrink-0 items-center justify-center rounded-lg",
@@ -36,9 +36,11 @@ export function StatCard({
           >
             <Icon className="size-5" />
           </div>
-          <div className="min-w-0">
-            <p className="truncate text-xs text-muted-foreground">{label}</p>
-            <p className="text-lg font-semibold">{value}</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs leading-tight text-wrap break-words text-muted-foreground">
+              {label}
+            </p>
+            <p className="text-lg font-semibold text-wrap break-words">{value}</p>
           </div>
         </CardContent>
       </Card>
