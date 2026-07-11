@@ -1,11 +1,13 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "motion/react"
-import { WalletIcon, UsersIcon, AlertCircleIcon } from "lucide-react"
+import { WalletIcon, UsersIcon, AlertCircleIcon, SendIcon, Loader2Icon } from "lucide-react"
+import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -22,8 +24,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { StatCard } from "@/components/layout/stat-card"
 import { formatRupiah } from "@/lib/format"
+import { triggerReminderTagihan } from "@/lib/actions/pembayaran"
 
 type Row = {
   id: string
@@ -48,6 +62,25 @@ export function IuranRekapClient({
 }) {
   const router = useRouter()
   const [desaFilter, setDesaFilter] = useState("all")
+  const [pending, startTransition] = useTransition()
+  const [confirmOpen, setConfirmOpen] = useState(false)
+
+  function handleSendReminder() {
+    startTransition(async () => {
+      try {
+        const result = await triggerReminderTagihan()
+        toast.success(
+          `Reminder mulai dikirim ke ${result.akanDikirim} pelanggan di latar belakang.` +
+            (result.skipped > 0 ? ` ${result.skipped} dilewati (belum ada nomor HP).` : "") +
+            " Cek halaman Notifikasi untuk hasilnya."
+        )
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Gagal memulai pengiriman reminder")
+      } finally {
+        setConfirmOpen(false)
+      }
+    })
+  }
 
   const filteredRows = useMemo(
     () => (desaFilter === "all" ? rows : rows.filter((r) => r.desaNama === desaFilter)),
@@ -68,7 +101,31 @@ export function IuranRekapClient({
           <h1 className="text-xl font-semibold">Rekap Iuran</h1>
           <p className="text-sm text-muted-foreground">{rows.length} transaksi bulan ini</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
+          <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+            <AlertDialogTrigger
+              render={<Button variant="outline" disabled={pending || belumBayar === 0} />}
+            >
+              {pending ? <Loader2Icon className="animate-spin" /> : <SendIcon />}
+              Kirim Reminder WA
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Kirim reminder ke {belumBayar} pelanggan?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Pesan pengingat tagihan akan dikirim satu per satu (dengan jeda) ke semua
+                  pelanggan aktif yang belum lunas bulan ini. Proses berjalan di latar belakang
+                  dan bisa memakan waktu beberapa menit — hasilnya bisa dicek di halaman
+                  Notifikasi. Tindakan ini hanya dipicu manual oleh admin, tidak berjalan
+                  otomatis.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Batal</AlertDialogCancel>
+                <AlertDialogAction onClick={handleSendReminder}>Kirim</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <Select
             items={{ all: "Semua desa", ...Object.fromEntries(desaList.map((d) => [d.nama, d.nama])) }}
             value={desaFilter}

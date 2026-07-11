@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma"
 import { pembayaranSchema, type PembayaranFormValues } from "@/lib/validation/pembayaran"
 import { sendWhatsAppMessage } from "@/lib/whatsapp"
 import { formatRupiah } from "@/lib/format"
+import { getPelangganBelumBayarBulanIni } from "@/lib/queries/pembayaran"
 
 async function requirePenarikOrAdmin() {
   const session = await auth()
@@ -14,6 +15,17 @@ async function requirePenarikOrAdmin() {
     throw new Error("Tidak diizinkan")
   }
   return session!.user
+}
+
+async function requireAdmin() {
+  const session = await auth()
+  if (session?.user?.role !== "ADMIN") {
+    throw new Error("Tidak diizinkan")
+  }
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 export async function recordPembayaran(values: PembayaranFormValues) {
@@ -51,4 +63,50 @@ export async function recordPembayaran(values: PembayaranFormValues) {
       jenis: "KONFIRMASI_PEMBAYARAN",
     })
   }
+}
+
+async function runReminderTagihan(
+  belumBayar: Awaited<ReturnType<typeof getPelangganBelumBayarBulanIni>>
+) {
+  const bulanIni = new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" })
+
+  for (const p of belumBayar) {
+    if (!p.noHp) continue
+
+    const message = `Halo ${p.nama}, ini pengingat iuran sampah bulan ${bulanIni} sebesar ${formatRupiah(
+      p.iuran
+    )} masih belum dibayar. Mohon segera diselesaikan sebelum akhir bulan. Terima kasih - RESIK`
+
+    await sendWhatsAppMessage({
+      pelangganId: p.id,
+      to: p.noHp,
+      message,
+      jenis: "REMINDER_TAGIHAN",
+    })
+
+    // Jeda antar pesan supaya tidak terlihat sebagai pola bulk-blast oleh WhatsApp
+    await sleep(2000)
+  }
+
+  revalidatePath("/admin/notifikasi")
+}
+
+/**
+ * Sengaja tidak menunggu seluruh loop selesai (ratusan pelanggan x jeda 2 detik
+ * bisa >10 menit — nyaris pasti timeout di reverse proxy). Action ini cuma
+ * memicu pengiriman di background lalu langsung balas; progress/hasil dicek
+ * lewat halaman Log Notifikasi.
+ */
+export async function triggerReminderTagihan() {
+  await requireAdmin()
+
+  const belumBayar = await getPelangganBelumBayarBulanIni()
+  const totalDenganNomor = belumBayar.filter((p) => p.noHp).length
+  const skipped = belumBayar.length - totalDenganNomor
+
+  runReminderTagihan(belumBayar).catch((err) => {
+    console.error("[triggerReminderTagihan] gagal jalan di background:", err)
+  })
+
+  return { total: belumBayar.length, akanDikirim: totalDenganNomor, skipped }
 }

@@ -14,7 +14,7 @@ Sistem pengelolaan layanan persampahan untuk desa Sukoanyar, Kidangbang, dan Suk
 
 ```bash
 npm install
-cp .env.example .env   # isi DATABASE_URL, AUTH_SECRET, CRON_SECRET
+cp .env.example .env   # isi DATABASE_URL, AUTH_SECRET
 npx prisma migrate dev
 npx prisma db seed
 npm run dev
