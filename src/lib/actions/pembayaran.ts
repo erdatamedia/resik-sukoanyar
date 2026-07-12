@@ -65,6 +65,24 @@ export async function recordPembayaran(values: PembayaranFormValues) {
   }
 }
 
+export async function quickRecordLunas(pelangganId: string) {
+  await requirePenarikOrAdmin()
+
+  const pelanggan = await prisma.pelanggan.findUnique({ where: { id: pelangganId } })
+  if (!pelanggan) {
+    throw new Error("Pelanggan tidak ditemukan")
+  }
+
+  const tanggal = new Date().toISOString().slice(0, 10)
+
+  await recordPembayaran({
+    pelangganId,
+    nominal: Number(pelanggan.iuran),
+    tanggal,
+    status: "LUNAS",
+  })
+}
+
 async function runReminderTagihan(
   belumBayar: Awaited<ReturnType<typeof getPelangganBelumBayarBulanIni>>
 ) {

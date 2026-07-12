@@ -1,11 +1,21 @@
-"use client"
+import { auth } from "@/auth"
+import { getTodayAbsensi } from "@/lib/queries/absensi"
+import { getJumlahRumahDilayaniHariIni } from "@/lib/queries/pengambilan-sampah"
+import { BerandaStats } from "./beranda-stats"
 
-import { CameraIcon, ClipboardCheck } from "lucide-react"
-import { useSession } from "next-auth/react"
-import { StatCard } from "@/components/layout/stat-card"
+export default async function PetugasSampahHomePage() {
+  const session = await auth()
+  const userId = session!.user.id
 
-export default function PetugasSampahHomePage() {
-  const { data: session } = useSession()
+  const [today, jumlahRumah] = await Promise.all([
+    getTodayAbsensi(userId),
+    getJumlahRumahDilayaniHariIni(userId),
+  ])
+
+  const status = !today ? "belum" : !today.checkOut ? "checked-in" : "selesai"
+  const statusLabel =
+    status === "belum" ? "Belum absen" : status === "checked-in" ? "Sedang bertugas" : "Selesai"
+  const statusTone = status === "belum" ? "negative" : "positive"
 
   return (
     <div className="flex flex-col gap-6">
@@ -14,10 +24,7 @@ export default function PetugasSampahHomePage() {
         <p className="text-sm text-muted-foreground">Halo, {session?.user?.name}</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <StatCard label="Status hari ini" value="Belum absen" icon={CameraIcon} tone="negative" index={0} />
-        <StatCard label="Rumah dilayani" value="0" icon={ClipboardCheck} index={1} />
-      </div>
+      <BerandaStats statusLabel={statusLabel} statusTone={statusTone} jumlahRumah={jumlahRumah} />
     </div>
   )
 }

@@ -9,6 +9,7 @@ import {
   CameraIcon,
   MessageCircleIcon,
   UserCogIcon,
+  Trash2Icon,
 } from "lucide-react"
 
 export type NavItem = {
@@ -36,6 +37,7 @@ export const NAV_BY_ROLE: Record<string, NavItem[]> = {
   PETUGAS_SAMPAH: [
     { label: "Beranda", href: "/petugas-sampah", icon: LayoutDashboard },
     { label: "Absensi", href: "/petugas-sampah/absensi", icon: CameraIcon },
+    { label: "Rumah", href: "/petugas-sampah/rumah", icon: Trash2Icon },
     { label: "Riwayat", href: "/petugas-sampah/riwayat", icon: History },
   ],
 }

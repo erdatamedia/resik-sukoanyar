@@ -2,29 +2,24 @@
 
 import { useMemo, useState, useTransition } from "react"
 import { motion } from "motion/react"
-import { CheckCircle2Icon, PencilIcon, SearchIcon } from "lucide-react"
+import { SearchIcon, Trash2Icon, CheckIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { formatRupiah } from "@/lib/format"
-import { quickRecordLunas } from "@/lib/actions/pembayaran"
-import { PembayaranFormDialog } from "./pembayaran-form-dialog"
+import { recordPengambilanSampah } from "@/lib/actions/pengambilan-sampah"
 
 type Row = {
   id: string
   nama: string
   alamat: string
   desaNama: string
-  iuran: number
-  sudahLunas: boolean
+  sudahDiambil: boolean
 }
 
-export function TagihanClient({ rows }: { rows: Row[] }) {
+export function RumahClient({ rows }: { rows: Row[] }) {
   const [search, setSearch] = useState("")
-  const [selected, setSelected] = useState<Row | null>(null)
-  const [dialogOpen, setDialogOpen] = useState(false)
   const [pendingId, setPendingId] = useState<string | null>(null)
   const [, startTransition] = useTransition()
 
@@ -38,21 +33,16 @@ export function TagihanClient({ rows }: { rows: Row[] }) {
     [rows, search]
   )
 
-  const belumLunas = rows.filter((r) => !r.sudahLunas).length
+  const sudahDiambil = rows.filter((r) => r.sudahDiambil).length
 
-  function openDialog(row: Row) {
-    setSelected(row)
-    setDialogOpen(true)
-  }
-
-  function handleTandaiLunas(row: Row) {
+  function handleTandai(row: Row) {
     setPendingId(row.id)
     startTransition(async () => {
       try {
-        await quickRecordLunas(row.id)
-        toast.success(`${row.nama} ditandai lunas`)
+        await recordPengambilanSampah(row.id)
+        toast.success(`${row.nama} ditandai sudah diambil`)
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Gagal menandai lunas")
+        toast.error(err instanceof Error ? err.message : "Gagal menandai")
       } finally {
         setPendingId(null)
       }
@@ -62,8 +52,10 @@ export function TagihanClient({ rows }: { rows: Row[] }) {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-xl font-semibold">Tagihan Bulan Ini</h1>
-        <p className="text-sm text-muted-foreground">{belumLunas} rumah belum bayar</p>
+        <h1 className="text-xl font-semibold">Rumah Dilayani</h1>
+        <p className="text-sm text-muted-foreground">
+          {sudahDiambil} dari {rows.length} rumah sudah diambil hari ini
+        </p>
       </div>
 
       <div className="relative">
@@ -79,7 +71,7 @@ export function TagihanClient({ rows }: { rows: Row[] }) {
       <div className="flex flex-col gap-2">
         {filtered.length === 0 && (
           <p className="py-10 text-center text-sm text-muted-foreground">
-            Tidak ada pelanggan yang cocok.
+            Tidak ada rumah yang cocok.
           </p>
         )}
         {filtered.map((row, i) => (
@@ -93,41 +85,23 @@ export function TagihanClient({ rows }: { rows: Row[] }) {
             <div className="min-w-0">
               <p className="truncate font-medium">{row.nama}</p>
               <p className="truncate text-xs text-muted-foreground">
-                {row.desaNama} &middot; {formatRupiah(row.iuran)}
+                {row.desaNama} &middot; {row.alamat}
               </p>
             </div>
-            {row.sudahLunas ? (
-              <Badge variant="secondary">Lunas</Badge>
+            {row.sudahDiambil ? (
+              <Badge variant="secondary">
+                <CheckIcon className="size-3" />
+                Diambil
+              </Badge>
             ) : (
-              <div className="flex shrink-0 items-center gap-1.5">
-                <Button
-                  size="sm"
-                  onClick={() => handleTandaiLunas(row)}
-                  disabled={pendingId === row.id}
-                >
-                  <CheckCircle2Icon />
-                  Tandai Lunas
-                </Button>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  className="size-8"
-                  onClick={() => openDialog(row)}
-                  title="Catat manual (nominal/tanggal berbeda)"
-                >
-                  <PencilIcon className="size-4" />
-                </Button>
-              </div>
+              <Button size="sm" onClick={() => handleTandai(row)} disabled={pendingId === row.id}>
+                <Trash2Icon />
+                Tandai Diambil
+              </Button>
             )}
           </motion.div>
         ))}
       </div>
-
-      <PembayaranFormDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        pelanggan={selected}
-      />
     </div>
   )
 }
