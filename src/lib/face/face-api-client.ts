@@ -46,3 +46,27 @@ export async function computeFaceDescriptor(
 
   return result?.descriptor ?? null
 }
+
+export type FaceBox = { x: number; y: number; width: number; height: number }
+
+// Dipakai untuk overlay live di preview kamera (kotak + validasi kecocokan),
+// bukan untuk hasil akhir yang dikirim ke server — jalan tiap beberapa ratus
+// ms di atas elemen <video>, jadi butuh box + descriptor sekaligus per panggilan.
+export async function detectFaceWithBox(
+  image: HTMLVideoElement | HTMLImageElement | HTMLCanvasElement
+): Promise<{ box: FaceBox; descriptor: Float32Array } | null> {
+  await loadFaceModels()
+
+  const result = await faceapi
+    .detectSingleFace(
+      image,
+      new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.3 })
+    )
+    .withFaceLandmarks()
+    .withFaceDescriptor()
+
+  if (!result) return null
+
+  const { x, y, width, height } = result.detection.box
+  return { box: { x, y, width, height }, descriptor: result.descriptor }
+}

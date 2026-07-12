@@ -151,7 +151,12 @@ export function AbsensiPanel({
               </Button>
             </motion.div>
           ) : cameraOpen ? (
-            <CameraCapture key="camera" onCapture={handleCapture} onCancel={() => setCameraOpen(false)} />
+            <CameraCapture
+              key="camera"
+              onCapture={handleCapture}
+              onCancel={() => setCameraOpen(false)}
+              referenceDescriptor={referenceDescriptor ?? undefined}
+            />
           ) : status === "belum" ? (
             <motion.div
               key="checkin-btn"
