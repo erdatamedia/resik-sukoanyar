@@ -10,5 +10,7 @@ export async function GET(request: NextRequest) {
     xForwardedProto: request.headers.get("x-forwarded-proto"),
     nextUrlOrigin: request.nextUrl.origin,
     url: request.url,
+    authUrlEnv: process.env.AUTH_URL ?? null,
+    nextauthUrlEnv: process.env.NEXTAUTH_URL ?? null,
   })
 }
