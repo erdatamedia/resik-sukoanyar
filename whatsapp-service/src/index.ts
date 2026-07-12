@@ -112,9 +112,34 @@ app.post("/send", async (req, res) => {
     await client.sendMessage(chatId, message)
     res.json({ success: true })
   } catch (err) {
-    res.status(500).json({ success: false, error: err instanceof Error ? err.message : String(err) })
+    const message = err instanceof Error ? err.message : String(err)
+    res.status(500).json({ success: false, error: message })
+
+    // Sesi kadang "terlihat" tersambung (getState() masih CONNECTED) tapi
+    // objek page Puppeteer-nya sudah rusak — biasanya baru ketahuan saat
+    // benar-benar coba kirim pesan. Tidak bisa dipulihkan tanpa restart
+    // proses, dan restart proses sendiri (bukan crash-loop, hanya sekali)
+    // aman karena sesi disimpan di .wwebjs_auth dan otomatis dipakai lagi,
+    // tanpa perlu scan QR ulang.
+    if (isUnrecoverableClientError(message)) {
+      console.error(
+        `Sesi WhatsApp rusak (${message}), restart proses agar PM2 hidupkan ulang otomatis...`
+      )
+      ready = false
+      process.exit(1)
+    }
   }
 })
+
+function isUnrecoverableClientError(message: string) {
+  return (
+    message.includes("detached Frame") ||
+    message.includes("Execution context was destroyed") ||
+    message.includes("Target closed") ||
+    message.includes("Session closed") ||
+    message.includes("Cannot read properties of undefined")
+  )
+}
 
 app.listen(PORT, () => {
   console.log(`RESIK WhatsApp service berjalan di port ${PORT}`)
