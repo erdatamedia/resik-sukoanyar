@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react"
 import { motion } from "motion/react"
-import { PlusIcon, SearchIcon, MoreVerticalIcon, SendIcon, UploadIcon } from "lucide-react"
+import { PlusIcon, SearchIcon, MoreVerticalIcon, SendIcon, UploadIcon, QrCodeIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -44,6 +44,7 @@ import { setStatusAktifPelanggan, deletePelanggan } from "@/lib/actions/pelangga
 import { sendReminderSatuPelanggan } from "@/lib/actions/pembayaran"
 import { PelangganFormDialog, type PelangganRow } from "./pelanggan-form-dialog"
 import { ImportPelangganDialog } from "./import-pelanggan-dialog"
+import { PelangganQrDialog } from "./pelanggan-qr-dialog"
 
 export function PelangganClient({
   pelanggan,
@@ -61,6 +62,7 @@ export function PelangganClient({
   const [sendingId, setSendingId] = useState<string | null>(null)
   const [, startTransition] = useTransition()
   const [importOpen, setImportOpen] = useState(false)
+  const [qrTarget, setQrTarget] = useState<PelangganRow | null>(null)
 
   const filtered = useMemo(() => {
     return pelanggan.filter((p) => {
@@ -240,6 +242,10 @@ export function PelangganClient({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => openEdit(row)}>Edit</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setQrTarget(row)}>
+                        <QrCodeIcon />
+                        Lihat QR
+                      </DropdownMenuItem>
                       {row.statusAktif === "AKTIF" && !row.sudahLunasBulanIni && (
                         <DropdownMenuItem
                           disabled={!row.noHp || sendingId === row.id}
@@ -275,6 +281,12 @@ export function PelangganClient({
       />
 
       <ImportPelangganDialog open={importOpen} onOpenChange={setImportOpen} desaList={desaList} />
+
+      <PelangganQrDialog
+        open={!!qrTarget}
+        onOpenChange={(open) => !open && setQrTarget(null)}
+        pelanggan={qrTarget}
+      />
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>

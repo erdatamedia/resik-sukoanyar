@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react"
 import { motion } from "motion/react"
-import { CheckCircle2Icon, PencilIcon, SearchIcon } from "lucide-react"
+import { CheckCircle2Icon, PencilIcon, QrCodeIcon, SearchIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { Input } from "@/components/ui/input"
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { formatRupiah } from "@/lib/format"
 import { quickRecordLunas } from "@/lib/actions/pembayaran"
 import { PembayaranFormDialog } from "./pembayaran-form-dialog"
+import { ScanQrDialog } from "./scan-qr-dialog"
 
 type Row = {
   id: string
@@ -26,6 +27,7 @@ export function TagihanClient({ rows }: { rows: Row[] }) {
   const [selected, setSelected] = useState<Row | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [pendingId, setPendingId] = useState<string | null>(null)
+  const [scanOpen, setScanOpen] = useState(false)
   const [, startTransition] = useTransition()
 
   const filtered = useMemo(
@@ -61,9 +63,15 @@ export function TagihanClient({ rows }: { rows: Row[] }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-xl font-semibold">Tagihan Bulan Ini</h1>
-        <p className="text-sm text-muted-foreground">{belumLunas} rumah belum bayar</p>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold">Tagihan Bulan Ini</h1>
+          <p className="text-sm text-muted-foreground">{belumLunas} rumah belum bayar</p>
+        </div>
+        <Button variant="outline" onClick={() => setScanOpen(true)}>
+          <QrCodeIcon />
+          Scan QR
+        </Button>
       </div>
 
       <div className="relative">
@@ -127,6 +135,15 @@ export function TagihanClient({ rows }: { rows: Row[] }) {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         pelanggan={selected}
+      />
+
+      <ScanQrDialog
+        open={scanOpen}
+        onOpenChange={setScanOpen}
+        rows={rows}
+        onTandaiLunas={handleTandaiLunas}
+        onCatatManual={openDialog}
+        pendingId={pendingId}
       />
     </div>
   )

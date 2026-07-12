@@ -127,3 +127,20 @@
     @apply font-sans;
   }
 }
+
+/* Cetak QR pelanggan: sembunyikan semua kecuali area QR yang ditandai */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #qr-print-area,
+  #qr-print-area * {
+    visibility: visible;
+  }
+  #qr-print-area {
+    position: fixed;
+    top: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
