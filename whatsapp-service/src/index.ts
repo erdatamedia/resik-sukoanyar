@@ -56,6 +56,25 @@ process.on("uncaughtException", (err) => {
   console.error("Uncaught exception pada WhatsApp client (diabaikan agar tidak crash-loop):", err)
 })
 
+// Event "disconnected" tidak selalu terpicu saat sesi di-unlink dari HP
+// secara remote — flag `ready` bisa nyangkut true padahal sesi sudah mati.
+// Cek ulang status asli tiap 30 detik sebagai jaring pengaman, bukan cuma
+// mengandalkan event pasif dari whatsapp-web.js.
+setInterval(async () => {
+  try {
+    const state = await client.getState()
+    const isReady = state === "CONNECTED"
+    if (ready !== isReady) {
+      console.log(`Status WhatsApp berubah lewat pengecekan berkala: ${state} (ready=${isReady})`)
+      ready = isReady
+      if (isReady) latestQr = null
+    }
+  } catch {
+    // client belum siap dievaluasi (mis. masih boot/re-auth) — abaikan,
+    // event listener yang menangani transisi state pada kondisi ini
+  }
+}, 30000)
+
 const app = express()
 app.use(express.json())
 
