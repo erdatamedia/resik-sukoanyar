@@ -108,8 +108,17 @@ app.post("/send", async (req, res) => {
   }
 
   try {
-    const chatId = `${to}@c.us`
-    await client.sendMessage(chatId, message)
+    // whatsapp-web.js melempar error internal yang membingungkan (mis.
+    // "Cannot read properties of undefined (reading 'getChat')") kalau
+    // langsung sendMessage ke nomor yang tidak terdaftar di WhatsApp —
+    // cek dulu di sini supaya errornya jelas & tidak dianggap sesi rusak.
+    const numberId = await client.getNumberId(to)
+    if (!numberId) {
+      res.status(400).json({ success: false, error: "Nomor tidak terdaftar di WhatsApp" })
+      return
+    }
+
+    await client.sendMessage(numberId._serialized, message)
     res.json({ success: true })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
@@ -136,8 +145,7 @@ function isUnrecoverableClientError(message: string) {
     message.includes("detached Frame") ||
     message.includes("Execution context was destroyed") ||
     message.includes("Target closed") ||
-    message.includes("Session closed") ||
-    message.includes("Cannot read properties of undefined")
+    message.includes("Session closed")
   )
 }
 
